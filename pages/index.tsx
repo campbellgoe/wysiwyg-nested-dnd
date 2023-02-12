@@ -31,9 +31,13 @@ const ComponentFromType = ({ type, items, ...props }) => {
     case 'input-text': {
       return <input type="text" {...props}/>
     }
+    case 'input-date': {
+      return <input type="date" {...props} />
+    }
     case 'input-submit': {
       return <input type="submit" {...props}/>
     }
+    
     default:
       return <div>type {type} not recognised.</div>
   }
@@ -59,6 +63,9 @@ const App = ({
       text: 'input-text'
     },
     {
+      text: 'input-date'
+    },
+    {
       text: 'input-submit'
     }
   ]
@@ -79,6 +86,24 @@ const App = ({
   }
   const createItemFromSelectableItem = (id, selectableItem, index): ItemType => {
     const out = { type: selectableItem.text, id, props: {} } as ItemType
+    const onChange = e => {
+      const id = out.id
+      setTree(tree => {
+        const newTree = new Map(tree)
+        const item = newTree.get(index)
+        console.log('item to update', index, item)
+        newTree.set(index, {
+          ...item,
+          items: item.items?.map((innerItem, index) => {
+            if(innerItem.id === id){
+              innerItem.props.value = e.target.value
+            }
+            return innerItem
+          })
+        })
+        return newTree
+      })
+    }
     switch(out.type){
       case 'text': {
         out.props.children = 'Edit my text'
@@ -97,25 +122,12 @@ const App = ({
       case 'input-text': {
         out.props.value = ''
         out.props.placeholder = 'Enter text here'
-        out.props.onChange = e => {
-          const id = out.id
-          setTree(tree => {
-            const newTree = new Map(tree)
-            const item = newTree.get(index)
-            console.log('item to update', index, item)
-            newTree.set(index, {
-              ...item,
-              items: item.items.map((innerItem, index) => {
-                if(innerItem.id === id){
-                  innerItem.props.value = e.target.value
-                }
-                return innerItem
-              })
-            })
-            return newTree
-          })
-        }
+        out.props.onChange = onChange
         break;
+      }
+      case 'input-date': {
+        out.props.value = (new Date(Date.now())).toDateString()
+        out.props.onChange = onChange
       }
       case 'input-submit': {
         out.props.value = 'Submit'
