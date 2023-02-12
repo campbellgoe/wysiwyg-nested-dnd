@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import { useRef, useState } from 'react'
 type ItemType = {
+  id: string | number,
   type: string,
   canNest?: boolean,
   items?: ItemType[],
@@ -37,38 +38,7 @@ const ComponentFromType = ({ type, items, ...props }) => {
       return <div>type {type} not recognised.</div>
   }
 }
-const createItemFromSelectableItem = (selectableItem): ItemType => {
-  const out = { type: selectableItem.text, props: {} } as ItemType
-  switch(out.type){
-    case 'text': {
-      out.props.children = 'Edit my text'
-      break;
-    }
-    case 'image': {
-      out.props.src = 'https://via.placeholder.com/150'
-      break;
-    }
-    case 'form': {
-      out.props.children = 'Empty form'
-      out.items = []
-      out.canNest = true
-      break;
-    }
-    case 'input-text': {
-      out.props.value = ''
-      out.props.placeholder = 'Enter text here'
-      break;
-    }
-    case 'input-submit': {
-      out.props.value = 'Submit'
-      break;
-    }
-    default: {
 
-    }
-  }
-  return out
-}
 const App = ({
   className = ''
 }) => {
@@ -107,6 +77,57 @@ const App = ({
       return newTree
     })
   }
+  const createItemFromSelectableItem = (id, selectableItem, index): ItemType => {
+    const out = { type: selectableItem.text, id, props: {} } as ItemType
+    switch(out.type){
+      case 'text': {
+        out.props.children = 'Edit my text'
+        break;
+      }
+      case 'image': {
+        out.props.src = 'https://via.placeholder.com/150'
+        break;
+      }
+      case 'form': {
+        out.props.children = 'Empty form'
+        out.items = []
+        out.canNest = true
+        break;
+      }
+      case 'input-text': {
+        out.props.value = ''
+        out.props.placeholder = 'Enter text here'
+        out.props.onChange = e => {
+          const id = out.id
+          setTree(tree => {
+            const newTree = new Map(tree)
+            const item = newTree.get(index)
+            console.log('item to update', index, item)
+            newTree.set(index, {
+              ...item,
+              items: item.items.map((innerItem, index) => {
+                if(innerItem.id === id){
+                  innerItem.props.value = e.target.value
+                }
+                return innerItem
+              })
+            })
+            return newTree
+          })
+        }
+        break;
+      }
+      case 'input-submit': {
+        out.props.value = 'Submit'
+        break;
+      }
+      default: {
+  
+      }
+    }
+    return out
+  }
+
   return (
     <div
       className={className}
@@ -132,7 +153,7 @@ const App = ({
               />
               {item.canNest && <button
                 onClick={() => {
-                  addItem(index, createItemFromSelectableItem(selectedItem))
+                  addItem(index, createItemFromSelectableItem(Math.random(), selectedItem, index))
                 }}
               >+ item to form</button>}
             </>
@@ -140,7 +161,7 @@ const App = ({
         })}
       </div>
       <button onClick={() => {
-        addItem(selectedIndex.current, createItemFromSelectableItem(selectedItem))
+        addItem(selectedIndex.current, createItemFromSelectableItem(Math.random(), selectedItem, selectedIndex.current))
         selectedIndex.current ++
       }}>+ item to container</button>
     </div>
