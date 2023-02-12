@@ -2,9 +2,11 @@ import Head from 'next/head'
 import { useRef, useState } from 'react'
 type ItemType = {
   type: string,
+  canNest?: boolean,
+  items?: ItemType[],
   props: any
 }
-const ComponentFromType = ({ type, ...props }) => {
+const ComponentFromType = ({ type, items, ...props }) => {
   switch(type){
     case 'text': {
       return <pre {...props}/>
@@ -13,6 +15,16 @@ const ComponentFromType = ({ type, ...props }) => {
       return <img {...props}/>
     }
     case 'form': {
+      if(items.length){
+        delete props.children
+        return <form {...props}>{items.map((item) => {
+          return <ComponentFromType
+            type={item.type}
+            items={item.items}
+            {...item.props}
+          />
+        })}</form>
+      }
       return <form {...props}/>
     }
     case 'input-text': {
@@ -38,6 +50,8 @@ const createItemFromSelectableItem = (selectableItem): ItemType => {
     }
     case 'form': {
       out.props.children = 'Empty form'
+      out.items = []
+      out.canNest = true
       break;
     }
     case 'input-text': {
@@ -83,7 +97,13 @@ const App = ({
   const addItem = (index, item) => {
     setTree(tree => {
       const newTree = new Map(tree)
-      newTree.set(index, item)
+      const existingItem = newTree.get(index)
+      if(existingItem && existingItem.canNest){
+        newTree.set(index, {...existingItem, items: [...existingItem.items || [], item]})
+        console.log('new tree', newTree)
+      } else {
+        newTree.set(index, item)
+      }
       return newTree
     })
   }
@@ -103,13 +123,26 @@ const App = ({
       <div>
         {Array.from(tree, ([index, item]) => {
           console.log('tree item', index, item)
-          return <ComponentFromType type={item.type} {...item.props}/>
+          return (
+            <>
+              <ComponentFromType
+                type={item.type}
+                items={item.items}
+                {...item.props}
+              />
+              {item.canNest && <button
+                onClick={() => {
+                  addItem(index, createItemFromSelectableItem(selectedItem))
+                }}
+              >+ item to form</button>}
+            </>
+          )
         })}
       </div>
       <button onClick={() => {
         addItem(selectedIndex.current, createItemFromSelectableItem(selectedItem))
         selectedIndex.current ++
-      }}>+</button>
+      }}>+ item to container</button>
     </div>
   )
 }
